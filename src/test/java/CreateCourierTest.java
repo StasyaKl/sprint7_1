@@ -2,18 +2,23 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
 import org.junit.Before;
 import request.CourierCreateRequest;
 import org.junit.Test;
+import request.LoginCheckRequest;
 
 import static constants.ErrorMessage.LOGIN_IS_USED;
 import static constants.ErrorMessage.NOT_ENOUGH_DATA_FOR_CREATE_COURIER;
+import static methods.DeleteAPI.deleteCourierRequest;
 import static methods.PostAPI.postCourierCreateRequest;
+import static methods.PostAPI.postCourierLoginRequest;
 import static org.apache.http.HttpStatus.*;
 import static org.junit.Assert.*;
 
 public class CreateCourierTest extends BaseTest {
     private CourierCreateRequest courierCreateRequest;
+    private CourierCreateRequest courierCreateRequestDouble;
 
     @Before
     public void courierGenerator() {
@@ -72,9 +77,14 @@ public class CreateCourierTest extends BaseTest {
     @DisplayName("Метод проверки невозможности создания пользователя с логином, который уже есть")
     @Description("Проверка кода ответа (409) и соответсвующего сообщения")
     public void isNotAbilityCreateCourierWithoutUsedLogin() {
-        courierCreateRequest.setLogin("test543212");
-        courierCreateRequest.setPassword(RandomStringUtils.randomNumeric(10));
-        Response response = postCourierCreateRequest(courierCreateRequest);
+        courierCreateRequestDouble = new CourierCreateRequest(
+                courierCreateRequest.getLogin(),
+                RandomStringUtils.randomNumeric(10),
+                RandomStringUtils.randomAlphabetic(10)
+        );
+
+        postCourierCreateRequest(courierCreateRequest);
+        Response response = postCourierCreateRequest(courierCreateRequestDouble);
 
         response.then()
                 .assertThat()
@@ -88,9 +98,14 @@ public class CreateCourierTest extends BaseTest {
     @DisplayName("Метод проверки невозможности создания двух одинаковых курьеров")
     @Description("Проверка кода ответа (409) и соответсвующего сообщения")
     public void isNotAbilityCreateTheSameCourier() {
-        courierCreateRequest.setLogin("test543212");
-        courierCreateRequest.setPassword("6165212741");
-        Response response = postCourierCreateRequest(courierCreateRequest);
+        courierCreateRequestDouble = new CourierCreateRequest(
+                courierCreateRequest.getLogin(),
+                courierCreateRequest.getPassword(),
+                courierCreateRequest.getFirstName()
+        );
+
+        postCourierCreateRequest(courierCreateRequest);
+        Response response = postCourierCreateRequest(courierCreateRequestDouble);
 
         response.then()
                 .assertThat()
@@ -98,5 +113,17 @@ public class CreateCourierTest extends BaseTest {
 
         assertEquals(response.path("message"),
                 LOGIN_IS_USED);
+    }
+
+    @After
+    public void deleteCourier() {
+        if (!courierCreateRequest.getLogin().isEmpty() && !courierCreateRequest.getPassword().isEmpty()) {
+            String id = postCourierLoginRequest(new LoginCheckRequest(courierCreateRequest.getLogin(), courierCreateRequest.getPassword())).path("id").toString();
+            Response response = deleteCourierRequest(id);
+
+            response.then()
+                    .assertThat()
+                    .statusCode(SC_OK);
+        }
     }
 }

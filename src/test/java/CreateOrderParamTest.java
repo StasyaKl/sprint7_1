@@ -1,6 +1,8 @@
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
+import org.junit.After;
+import request.OrderCancelRequest;
 import request.OrderCreateRequest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -8,7 +10,8 @@ import org.junit.runners.Parameterized;
 
 import static methods.PostAPI.postCreateOrderRequest;
 
-import static org.apache.http.HttpStatus.SC_CREATED;
+import static methods.PutAPI.putCancelOrder;
+import static org.apache.http.HttpStatus.*;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith(Parameterized.class)
@@ -22,6 +25,8 @@ public class CreateOrderParamTest extends BaseTest {
     private String deliveryDate;
     private String comment;
     private String[] color;
+    private String track;
+
 
     public CreateOrderParamTest(String firstName, String lastName, String address, String metroStation, String phone, int rentTime, String deliveryDate, String comment, String[] color) {
         this.firstName = firstName;
@@ -54,12 +59,23 @@ public class CreateOrderParamTest extends BaseTest {
     @Description("Проверка кода ответа (201) и соответсвующего сообщения")
     public void checkAbilityCreateOrder() {
         OrderCreateRequest orderCreateRequest = new OrderCreateRequest(firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment, color);
-        Response response =  postCreateOrderRequest(orderCreateRequest);
+        Response response = postCreateOrderRequest(orderCreateRequest);
 
         response.then()
                 .assertThat()
                 .statusCode(SC_CREATED);
 
         assertNotNull(response.then().extract().path("track"));
+        track = response.then().extract().path("track").toString();
+    }
+
+   @After
+    public void cancelOrder() {
+        OrderCancelRequest orderCancelRequest = new OrderCancelRequest(track);
+        Response response = putCancelOrder(orderCancelRequest);
+
+        response.then()
+                .assertThat()
+                .statusCode(SC_BAD_REQUEST);
     }
 }

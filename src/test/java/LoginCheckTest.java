@@ -2,12 +2,16 @@ import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.Response;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.After;
+import request.CourierCreateRequest;
 import request.LoginCheckRequest;
 import org.junit.Before;
 import org.junit.Test;
 
 import static constants.ErrorMessage.COURIER_NOT_FOUND;
 import static constants.ErrorMessage.NOT_ENOUGH_DATA_FOR_LOGIN;
+import static methods.DeleteAPI.deleteCourierRequest;
+import static methods.PostAPI.postCourierCreateRequest;
 import static methods.PostAPI.postCourierLoginRequest;
 import static org.apache.http.HttpStatus.*;
 import static org.junit.Assert.*;
@@ -15,10 +19,20 @@ import static org.junit.Assert.*;
 public class LoginCheckTest extends BaseTest {
 
     private LoginCheckRequest loginCheckRequest;
+    private CourierCreateRequest courierCreateRequest;
+
 
     @Before
     public void courierGenerator() {
-        loginCheckRequest = new LoginCheckRequest("test543212", "6165212741");
+        courierCreateRequest = new CourierCreateRequest(
+                RandomStringUtils.randomAlphabetic(10),
+                RandomStringUtils.randomNumeric(10),
+                RandomStringUtils.randomAlphabetic(10)
+        );
+
+        postCourierCreateRequest(courierCreateRequest);
+
+        loginCheckRequest = new LoginCheckRequest(courierCreateRequest.getLogin(), courierCreateRequest.getPassword());
     }
 
     @Test
@@ -79,5 +93,17 @@ public class LoginCheckTest extends BaseTest {
 
         assertEquals(response.path("message"),
                 NOT_ENOUGH_DATA_FOR_LOGIN);
+    }
+
+    @After
+    public void deleteCourier() {
+        if (!courierCreateRequest.getLogin().isEmpty() && !courierCreateRequest.getPassword().isEmpty()) {
+            String id = postCourierLoginRequest(new LoginCheckRequest(courierCreateRequest.getLogin(), courierCreateRequest.getPassword())).path("id").toString();
+            Response response = deleteCourierRequest(id);
+
+            response.then()
+                    .assertThat()
+                    .statusCode(SC_OK);
+        }
     }
 }

@@ -6,4 +6,5 @@ public class Config {
     public static String POST_LOGIN_COURIER = "/api/v1/courier/login";
     public static String POST_ORDER_COURIER = "/api/v1/orders";
     public static String GET_ORDER_LIST = "/api/v1/orders";
+    public static String PUT_CANCEL_ORDER = "/api/v1/orders/cancel";
 }
